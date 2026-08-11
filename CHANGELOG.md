@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows semantic
 versioning.
 
+## [Unreleased]
+
+### Fixed
+
+- Constrain credential tests, OAuth token exchange, authenticated API calls, and cross-origin
+  redirects to validated `*.kommo.com` account domains.
+- Reject encoded traversal and non-path input in the advanced API node and validate dynamic list
+  IDs before constructing requests.
+- Return individual leads, contacts, companies, tasks, notes, catalogs, and catalog elements when
+  paginating legacy `Return All` operations.
+- Preserve each original n8n input index when empty Bulk items are removed before batching.
+- Reconcile Trigger registrations when event settings change or Kommo marks a webhook disabled.
+- Add regression coverage for every urgent audit blocker above.
+
 ## [0.2.0] - 2026-08-11
 
 ### Added
