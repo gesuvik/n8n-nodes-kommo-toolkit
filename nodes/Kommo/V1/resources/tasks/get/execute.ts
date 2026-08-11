@@ -91,7 +91,14 @@ export async function execute(
 	const endpoint = `tasks`;
 
 	if (returnAll) {
-		const responseData = await apiRequestAllItems.call(this, requestMethod, endpoint, body, qs);
+		const responseData = await apiRequestAllItems.call(
+			this,
+			requestMethod,
+			endpoint,
+			body,
+			qs,
+			'tasks',
+		);
 		return this.helpers.returnJsonArray(responseData);
 	}
 

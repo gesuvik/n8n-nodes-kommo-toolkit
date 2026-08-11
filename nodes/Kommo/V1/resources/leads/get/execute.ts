@@ -110,7 +110,14 @@ export async function execute(
 	const endpoint = `leads`;
 
 	if (returnAll) {
-		const responseData = await apiRequestAllItems.call(this, requestMethod, endpoint, body, qs);
+		const responseData = await apiRequestAllItems.call(
+			this,
+			requestMethod,
+			endpoint,
+			body,
+			qs,
+			'leads',
+		);
 		return this.helpers.returnJsonArray(responseData);
 	}
 

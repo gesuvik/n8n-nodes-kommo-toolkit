@@ -26,6 +26,28 @@ async function getRegisteredWebhooks(
 	return extractEmbedded(response, 'webhooks');
 }
 
+function normalizeSettings(settings: unknown): string[] {
+	if (!Array.isArray(settings)) return [];
+	return [
+		...new Set(
+			settings
+				.filter((setting): setting is string => typeof setting === 'string')
+				.map((setting) => setting.trim())
+				.filter(Boolean),
+		),
+	].sort();
+}
+
+function webhookMatches(webhook: IDataObject, destination: string, settings: string[]): boolean {
+	if (webhook.destination !== destination) return false;
+	if (webhook.disabled === true || webhook.disabled === 1 || webhook.disabled === '1') return false;
+	const registeredSettings = normalizeSettings(webhook.settings);
+	return (
+		registeredSettings.length === settings.length &&
+		registeredSettings.every((setting, index) => setting === settings[index])
+	);
+}
+
 export class KommoTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Kommo Trigger',
@@ -95,15 +117,21 @@ export class KommoTrigger implements INodeType {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				const destination = this.getNodeWebhookUrl('default');
 				if (!destination) return false;
+				const settings = normalizeSettings(this.getNodeParameter('events'));
 				const webhooks = await getRegisteredWebhooks(this, destination);
-				return webhooks.some((webhook) => webhook.destination === destination);
+				return webhooks.some((webhook) => webhookMatches(webhook, destination, settings));
 			},
 			async create(this: IHookFunctions): Promise<boolean> {
 				const destination = this.getNodeWebhookUrl('default');
 				if (!destination) {
 					throw new NodeOperationError(this.getNode(), 'Could not generate the n8n webhook URL');
 				}
-				const settings = this.getNodeParameter('events') as string[];
+				const settings = normalizeSettings(this.getNodeParameter('events'));
+				const webhooks = await getRegisteredWebhooks(this, destination);
+				if (webhooks.some((webhook) => webhookMatches(webhook, destination, settings))) return true;
+				if (webhooks.some((webhook) => webhook.destination === destination)) {
+					await apiRequest.call(this, 'DELETE', 'webhooks', { destination });
+				}
 				await apiRequest.call(this, 'POST', 'webhooks', { destination, settings });
 				return true;
 			},

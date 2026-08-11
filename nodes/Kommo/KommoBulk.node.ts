@@ -19,18 +19,32 @@ interface BulkTarget {
 	endpoint: string;
 }
 
-function getTarget(node: INode, entity: string, catalogId?: number): BulkTarget {
+interface BulkEntry {
+	data: IDataObject;
+	sourceIndex: number;
+}
+
+function requirePositiveInteger(node: INode, value: unknown, label: string): number {
+	const normalized = typeof value === 'string' ? value.trim() : value;
+	const parsed =
+		typeof normalized === 'string' && /^\d+$/.test(normalized) ? Number(normalized) : normalized;
+	if (typeof parsed !== 'number' || !Number.isSafeInteger(parsed) || parsed <= 0) {
+		throw new NodeOperationError(node, `${label} must be a positive integer`);
+	}
+	return parsed;
+}
+
+function getTarget(node: INode, entity: string, catalogId?: unknown): BulkTarget {
 	switch (entity) {
 		case 'leads':
 		case 'contacts':
 		case 'companies':
 		case 'tasks':
 			return { endpoint: entity, embeddedKey: entity };
-		case 'catalogElements':
-			if (!catalogId) {
-				throw new NodeOperationError(node, 'A List ID is required for list elements');
-			}
-			return { endpoint: `catalogs/${catalogId}/elements`, embeddedKey: 'elements' };
+		case 'catalogElements': {
+			const safeCatalogId = requirePositiveInteger(node, catalogId, 'List ID');
+			return { endpoint: `catalogs/${safeCatalogId}/elements`, embeddedKey: 'elements' };
+		}
 		default:
 			throw new NodeOperationError(node, `Unsupported bulk entity: ${entity}`);
 	}
@@ -163,12 +177,15 @@ export class KommoBulk implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as 'create' | 'update';
 		const dataSource = this.getNodeParameter('dataSource', 0) as 'inputItems' | 'json';
 		const catalogId =
-			entity === 'catalogElements' ? (this.getNodeParameter('catalogId', 0) as number) : undefined;
+			entity === 'catalogElements' ? this.getNodeParameter('catalogId', 0) : undefined;
 		const target = getTarget(this.getNode(), entity, catalogId);
 
-		let entities: IDataObject[];
+		let entries: BulkEntry[];
 		if (dataSource === 'inputItems') {
-			entities = inputItems.map((item) => ({ ...item.json }));
+			entries = inputItems.map((item, sourceIndex) => ({
+				data: { ...item.json },
+				sourceIndex,
+			}));
 		} else {
 			const parsed = parseJson(
 				this.getNodeParameter('entitiesJson', 0) as string,
@@ -179,22 +196,27 @@ export class KommoBulk implements INodeType {
 			if (!Array.isArray(parsed)) {
 				throw new NodeOperationError(this.getNode(), 'Entities JSON must contain an array');
 			}
-			entities = parsed;
+			if (
+				!parsed.every(
+					(value) => value !== null && typeof value === 'object' && !Array.isArray(value),
+				)
+			) {
+				throw new NodeOperationError(this.getNode(), 'Every entity must be a JSON object');
+			}
+			entries = parsed.map((data) => ({ data: data as IDataObject, sourceIndex: 0 }));
 		}
 
 		const removeEmptyValues = this.getNodeParameter('removeEmptyValues', 0) as boolean;
 		if (removeEmptyValues) {
-			entities = entities
-				.map((item) => clearNullableProps(item))
-				.filter((item): item is IDataObject => Boolean(item));
+			entries = entries.flatMap((entry) => {
+				const data = clearNullableProps(entry.data);
+				return data ? [{ ...entry, data }] : [];
+			});
 		}
-		if (!entities.length) return [[]];
+		if (!entries.length) return [[]];
 
 		const batchSize = this.getNodeParameter('batchSize', 0) as number;
-		const batches = chunk(
-			entities.map((data, sourceIndex) => ({ data, sourceIndex })),
-			batchSize,
-		);
+		const batches = chunk(entries, batchSize);
 		const results: INodeExecutionData[] = [];
 
 		for (const batch of batches) {
