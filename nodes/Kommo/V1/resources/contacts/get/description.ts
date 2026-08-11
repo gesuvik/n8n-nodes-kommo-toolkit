@@ -75,7 +75,6 @@ export const description: IContactsProperties = [
 				'Select users. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			noDataExpression: true,
 		},
-		addDateRangeDescription('Created at', 'created_at'),
 		addDateRangeDescription('Updated at', 'updated_at'),
 		addDateRangeDescription('Closest task at', 'closest_task_at'),
 	]),
@@ -105,10 +104,6 @@ export const description: IContactsProperties = [
 				{
 					name: 'Leads',
 					value: 'leads',
-				},
-				{
-					name: 'Customers',
-					value: 'customers',
 				},
 			]),
 		],

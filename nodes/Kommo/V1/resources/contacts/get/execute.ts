@@ -12,7 +12,6 @@ interface IFilter {
 	created_by?: number[];
 	updated_by?: number[];
 	responsible_user_id?: number[];
-	created_at: INumRange;
 	updated_at: INumRange;
 	closest_task_at: INumRange;
 }
@@ -24,9 +23,6 @@ interface FilterFromFrontend {
 	created_by?: number[];
 	updated_by?: number[];
 	responsible_user_id?: number[];
-	created_at?: {
-		dateRangeCustomProperties: IStringRange;
-	};
 	updated_at?: {
 		dateRangeCustomProperties: IStringRange;
 	};
@@ -52,7 +48,6 @@ export async function execute(
 		...filterWithoutQuery,
 		id: stringToArray(filterWithoutQuery.id).filter((value) => typeof value === 'number'),
 		name: stringToArray(filterWithoutQuery.name).filter((value) => typeof value === 'string'),
-		created_at: makeRangeProperty(filterWithoutQuery.created_at?.dateRangeCustomProperties),
 		updated_at: makeRangeProperty(filterWithoutQuery.updated_at?.dateRangeCustomProperties),
 		closest_task_at: makeRangeProperty(
 			filterWithoutQuery.closest_task_at?.dateRangeCustomProperties,

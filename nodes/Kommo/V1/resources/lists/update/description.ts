@@ -12,9 +12,17 @@ const displayOptions: IDisplayOptions | undefined = {
 };
 
 const updateListModel: INodeProperties[] = [
-	...listModelDescription.filter((el) =>
-		['id', 'name', 'can_add_elements', 'can_link_multiple'].includes(el.name),
-	),
+	...listModelDescription
+		.filter((el) => ['id', 'name', 'can_link_multiple'].includes(el.name))
+		.map((property) =>
+			property.name === 'id'
+				? property
+				: {
+						...property,
+						default: undefined,
+						required: false,
+					},
+		),
 	addRequestId(),
 ];
 

@@ -28,11 +28,10 @@ export async function execute(
 	const body = listsCollection.list
 		.map((list): RequestListUpdate => {
 			return {
-				...list,
 				id: Number(list.id),
-				name: String(list.name),
-				can_add_elements: Boolean(list.can_add_elements),
-				can_link_multiple: Boolean(list.can_link_multiple),
+				name: typeof list.name === 'string' ? list.name : undefined,
+				can_link_multiple:
+					typeof list.can_link_multiple === 'boolean' ? list.can_link_multiple : undefined,
 				request_id: list.request_id ? String(list.request_id) : undefined,
 			};
 		})

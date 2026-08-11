@@ -77,7 +77,6 @@ export const description: ICompaniesProperties = [
 		},
 		addDateRangeDescription('Created at', 'created_at'),
 		addDateRangeDescription('Updated at', 'updated_at'),
-		addDateRangeDescription('Closest task at', 'closest_task_at'),
 	]),
 	{
 		displayName: 'Options',
@@ -105,10 +104,6 @@ export const description: ICompaniesProperties = [
 				{
 					name: 'Leads',
 					value: 'leads',
-				},
-				{
-					name: 'Customers',
-					value: 'customers',
 				},
 				{
 					name: 'Contacts',
