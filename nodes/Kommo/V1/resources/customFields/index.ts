@@ -1,4 +1,11 @@
-import { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
+import {
+	IDataObject,
+	IExecuteFunctions,
+	INodeExecutionData,
+	INodePropertyOptions,
+	INodeProperties,
+	NodeOperationError,
+} from 'n8n-workflow';
 import { clearNullableProps } from '../../helpers/clearNullableProps';
 import { parseOptionalJson } from '../../helpers/parseJson';
 import { apiRequest } from '../../transport';
@@ -10,22 +17,38 @@ function show(operation: string[]) {
 	return { show: { resource: [resource], operation } };
 }
 
-const fieldTypes = [
-	{ name: 'Address', value: 'smart_address' },
-	{ name: 'Birthday', value: 'birthday' },
-	{ name: 'Category', value: 'category' },
-	{ name: 'Chained List', value: 'chained_list' },
+const allEntities = ['contacts', 'leads', 'companies', 'catalogs'];
+const cardEntities = ['contacts', 'leads', 'companies'];
+
+function fieldType(
+	name: string,
+	value: string,
+	entities: string[] = allEntities,
+): INodePropertyOptions {
+	return {
+		name,
+		value,
+		displayOptions: { show: { customFieldEntityType: entities } },
+	};
+}
+
+const fieldTypes: INodePropertyOptions[] = [
+	fieldType('Address', 'smart_address', cardEntities),
+	fieldType('Birthday', 'birthday', cardEntities),
+	fieldType('Category', 'category', ['catalogs']),
+	fieldType('Chained List', 'chained_list', ['leads']),
 	{ name: 'Checkbox', value: 'checkbox' },
 	{ name: 'Date', value: 'date' },
 	{ name: 'Date and Time', value: 'date_time' },
 	{ name: 'File', value: 'file' },
-	{ name: 'Legal Entity', value: 'legal_entity' },
-	{ name: 'Linked Entity', value: 'linked_entity' },
+	fieldType('Legal Entity', 'legal_entity', cardEntities),
+	fieldType('Linked Entity', 'linked_entity', ['catalogs']),
 	{ name: 'Monetary', value: 'monetary' },
 	{ name: 'Multiselect', value: 'multiselect' },
-	{ name: 'Multitext', value: 'multitext' },
+	fieldType('Multitext', 'multitext', ['contacts']),
 	{ name: 'Number', value: 'numeric' },
-	{ name: 'Price', value: 'price' },
+	fieldType('Price', 'price', ['catalogs']),
+	fieldType('Products', 'items', ['catalogs']),
 	{ name: 'Radio Button', value: 'radiobutton' },
 	{ name: 'Select', value: 'select' },
 	{ name: 'Short Address', value: 'streetaddress' },
@@ -33,6 +56,13 @@ const fieldTypes = [
 	{ name: 'Text Area', value: 'textarea' },
 	{ name: 'URL', value: 'url' },
 ];
+
+function isFieldTypeAvailable(entity: string, type: string): boolean {
+	const option = fieldTypes.find((field) => field.value === type);
+	if (!option) return false;
+	const entities = option.displayOptions?.show?.customFieldEntityType ?? allEntities;
+	return (entities as string[]).includes(entity);
+}
 
 export const descriptions: INodeProperties[] = [
 	{
@@ -220,9 +250,17 @@ export const get = {
 
 export const create = {
 	async execute(this: IExecuteFunctions, index: number): Promise<INodeExecutionData[]> {
+		const entity = this.getNodeParameter('customFieldEntityType', index) as string;
+		const type = this.getNodeParameter('customFieldType', index) as string;
+		if (!isFieldTypeAvailable(entity, type)) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Custom field type ${type} is not available for ${entity}`,
+			);
+		}
 		const body = clearNullableProps({
 			name: this.getNodeParameter('customFieldName', index) as string,
-			type: this.getNodeParameter('customFieldType', index) as string,
+			type,
 			...prepareFields(this, index, 'customFieldAdditionalFields'),
 		});
 		const response = await apiRequest.call(
