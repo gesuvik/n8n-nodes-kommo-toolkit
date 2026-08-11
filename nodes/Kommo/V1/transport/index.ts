@@ -120,7 +120,7 @@ export async function apiRequestAllItems(
 		} else {
 			returnData.push(responseData);
 		}
-	} while (responseData._links?.next?.href?.length);
+	} while (responseData?._links?.next?.href?.length);
 
 	return returnData;
 }
