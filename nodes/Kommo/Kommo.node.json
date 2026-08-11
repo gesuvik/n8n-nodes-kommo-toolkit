@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-kommo-toolkit.kommo",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Miscellaneous"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://developers.kommo.com/docs/authorization"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://developers.kommo.com/reference"
+			}
+		]
+	}
+}

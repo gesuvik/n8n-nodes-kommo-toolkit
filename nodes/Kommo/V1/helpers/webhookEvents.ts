@@ -1,0 +1,28 @@
+import { INodePropertyOptions } from 'n8n-workflow';
+
+export const webhookEventOptions: INodePropertyOptions[] = [
+	{ name: 'Company Added', value: 'add_company' },
+	{ name: 'Company Deleted', value: 'delete_company' },
+	{ name: 'Company Responsible Changed', value: 'responsible_company' },
+	{ name: 'Company Updated', value: 'update_company' },
+	{ name: 'Contact Added', value: 'add_contact' },
+	{ name: 'Contact Deleted', value: 'delete_contact' },
+	{ name: 'Contact Responsible Changed', value: 'responsible_contact' },
+	{ name: 'Contact Updated', value: 'update_contact' },
+	{ name: 'Incoming Message Received', value: 'add_message' },
+	{ name: 'Lead Added', value: 'add_lead' },
+	{ name: 'Lead Deleted', value: 'delete_lead' },
+	{ name: 'Lead Responsible Changed', value: 'responsible_lead' },
+	{ name: 'Lead Restored', value: 'restore_lead' },
+	{ name: 'Lead Status Changed', value: 'status_lead' },
+	{ name: 'Lead Updated', value: 'update_lead' },
+	{ name: 'Note Added to Company', value: 'note_company' },
+	{ name: 'Note Added to Contact', value: 'note_contact' },
+	{ name: 'Note Added to Lead', value: 'note_lead' },
+	{ name: 'Outgoing Message Sent', value: 'add_outgoing_message' },
+	{ name: 'Talk Added', value: 'add_talk' },
+	{ name: 'Task Added', value: 'add_task' },
+	{ name: 'Task Deleted', value: 'delete_task' },
+	{ name: 'Task Responsible Changed', value: 'responsible_task' },
+	{ name: 'WhatsApp Template Submitted for Review', value: 'add_chat_template_review' },
+];
