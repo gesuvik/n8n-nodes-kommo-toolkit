@@ -10,7 +10,14 @@
 		"webhook"
 	],
 	"license": "MIT",
-	"homepage": "https://www.npmjs.com/package/n8n-nodes-kommo-toolkit",
+	"homepage": "https://github.com/gessuvik/n8n-nodes-kommo-toolkit#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/gessuvik/n8n-nodes-kommo-toolkit.git"
+	},
+	"bugs": {
+		"url": "https://github.com/gessuvik/n8n-nodes-kommo-toolkit/issues"
+	},
 	"author": {
 		"name": "n8n-nodes-kommo-toolkit",
 		"email": "noreply@users.noreply.github.com"
@@ -28,8 +35,8 @@
 		"build": "n8n-node build",
 		"build:watch": "tsc --watch",
 		"dev": "n8n-node dev",
-		"format": "prettier nodes credentials test docs package.json README.md CHANGELOG.md --write",
-		"format:check": "prettier nodes credentials test docs package.json README.md CHANGELOG.md --check",
+		"format": "prettier nodes credentials test docs package.json README.md CHANGELOG.md CONTRIBUTING.md --write",
+		"format:check": "prettier nodes credentials test docs package.json README.md CHANGELOG.md CONTRIBUTING.md --check",
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
 		"package:check": "node --test test/package.test.js",

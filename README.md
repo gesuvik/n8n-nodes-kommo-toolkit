@@ -51,7 +51,7 @@ places where variable Kommo structures still use JSON.
 
 ## Installation
 
-After the package has been published, install it in a self-hosted n8n instance:
+Install the published package in a self-hosted n8n instance:
 
 1. Open **Settings > Community Nodes**.
 2. Select **Install**.
@@ -139,6 +139,7 @@ See [CHANGELOG.md](CHANGELOG.md) for fixes, additions, and migration notes.
 
 ## Resources
 
+- [Toolkit source and issue tracker](https://github.com/gessuvik/n8n-nodes-kommo-toolkit)
 - [Kommo API reference](https://developers.kommo.com/reference)
 - [Kommo webhooks](https://developers.kommo.com/docs/webhooks-1)
 - [Kommo limitations and recommendations](https://developers.kommo.com/docs/limitations-and-recommendations)
@@ -150,6 +151,9 @@ The original project was created by Yaroslav Tolstoy and is licensed under the M
 toolkit preserves that copyright notice and documents its additional changes in the changelog.
 Upstream links are preserved for attribution; toolkit-specific issues should not be reported as
 upstream defects without reproducing them on the original package.
+
+Contributions and independent audits are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before
+opening a pull request.
 
 - [GitHub issues](https://github.com/yatolstoy/n8n-nodes-kommo/issues)
 - [Telegram](https://t.me/yatolstoy)
