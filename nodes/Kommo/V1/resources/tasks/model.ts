@@ -24,7 +24,7 @@ export const taskModelDescription: INodeProperties[] = [
 		displayName: 'Responsible User Name or ID',
 		name: 'responsible_user_id',
 		type: 'options',
-		default: 0,
+		default: undefined,
 		typeOptions: {
 			loadOptionsMethod: 'getActiveUsersWithRobot',
 		},
@@ -46,7 +46,6 @@ export const taskModelDescription: INodeProperties[] = [
 				value: 'contacts',
 			},
 			{ name: 'Companies', value: 'companies' },
-			{ name: 'Customers', value: 'customers' },
 		],
 	},
 	{
@@ -88,7 +87,7 @@ export const taskModelDescription: INodeProperties[] = [
 		displayName: 'Created By User Name or ID',
 		name: 'created_by',
 		type: 'options',
-		default: 0,
+		default: undefined,
 		typeOptions: {
 			loadOptionsMethod: 'getActiveUsersWithRobot',
 		},
@@ -99,7 +98,7 @@ export const taskModelDescription: INodeProperties[] = [
 		displayName: 'Updated By User Name or ID',
 		name: 'updated_by',
 		type: 'options',
-		default: 0,
+		default: undefined,
 		typeOptions: {
 			loadOptionsMethod: 'getActiveUsersWithRobot',
 		},

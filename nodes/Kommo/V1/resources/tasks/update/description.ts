@@ -11,7 +11,12 @@ const displayOptions: IDisplayOptions | undefined = {
 	},
 };
 
-const updateTaskModel: INodeProperties[] = [...taskModelDescription, addRequestId()];
+const updateTaskModel: INodeProperties[] = [
+	...taskModelDescription.map((property) =>
+		property.name === 'id' ? property : { ...property, default: undefined, required: false },
+	),
+	{ ...addRequestId(), default: undefined },
+];
 
 export const description: ITasksProperties = [
 	...addJsonParametersDescription(displayOptions),

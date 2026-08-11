@@ -44,14 +44,11 @@ test('custom fields skip blank entries and merge repeated fields', () => {
 	assert.deepEqual(result, [
 		{
 			field_id: 1,
-			values: [
-				{ value: 'first', enum_id: undefined, enum_code: undefined },
-				{ value: 'second', enum_id: undefined, enum_code: undefined },
-			],
+			values: [{ value: 'first' }, { value: 'second' }],
 		},
 		{
 			field_id: 2,
-			values: [{ value: undefined, enum_id: 1, enum_code: undefined }],
+			values: [{ enum_id: 1 }],
 		},
 	]);
 });

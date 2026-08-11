@@ -47,11 +47,40 @@ export const addCustomFieldDescription = (loadOptionsMethod: string): INodePrope
 						type: 'string',
 						default: '',
 					},
+					{
+						displayName: 'Enum ID',
+						name: 'enum_id',
+						type: 'number',
+						default: undefined,
+						description: 'Optional enum ID for select, multitext, and address values',
+					},
+					{
+						displayName: 'Enum Code',
+						name: 'enum_code',
+						type: 'string',
+						default: '',
+						description: 'Optional enum code, such as WORK, MOB, HOME, city, state, or country',
+					},
 				],
 			},
 		],
 	};
 };
+
+function normalizeDateValue(value: unknown): number | string | undefined {
+	if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+	if (typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	if (isNumber(trimmed)) {
+		const timestamp = Number(trimmed);
+		return Number.isFinite(timestamp) ? timestamp : undefined;
+	}
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed) && Number.isFinite(Date.parse(trimmed))) {
+		return trimmed;
+	}
+	return undefined;
+}
 
 export const makeCustomFieldReqObject = (customFieldsValues: ICustomFieldValuesForm) => {
 	return (
@@ -82,8 +111,11 @@ export const makeCustomFieldReqObject = (customFieldsValues: ICustomFieldValuesF
 				}
 
 				let value: unknown = typeof cf.value === 'object' ? cf.value : undefined;
-				let enum_id: number | undefined;
-				let enum_code: string | undefined;
+				const parsedEnumId = Number(cf.enum_id);
+				let enum_id =
+					Number.isSafeInteger(parsedEnumId) && parsedEnumId > 0 ? parsedEnumId : undefined;
+				let enum_code = cf.enum_code?.trim() || undefined;
+				if (enum_id !== undefined) enum_code = undefined;
 
 				if (
 					typeof cf.value === 'string' &&
@@ -127,13 +159,13 @@ export const makeCustomFieldReqObject = (customFieldsValues: ICustomFieldValuesF
 						value = Boolean(cf.value);
 						break;
 					case 'date':
-						value = Number(cf.value);
+						value = normalizeDateValue(cf.value);
 						break;
 					case 'date_time':
-						value = Number(cf.value);
+						value = normalizeDateValue(cf.value);
 						break;
 					case 'birthday':
-						value = Number(cf.value);
+						value = normalizeDateValue(cf.value);
 						break;
 					case 'text':
 						value = String(cf.value);
@@ -160,35 +192,36 @@ export const makeCustomFieldReqObject = (customFieldsValues: ICustomFieldValuesF
 						value = String(cf.value);
 						break;
 					case 'select':
-						if (isNumber(String(cf.value))) {
+						if (enum_id === undefined && enum_code === undefined && isNumber(String(cf.value))) {
 							enum_id = Number(cf.value);
-						} else {
+						} else if (enum_id === undefined && enum_code === undefined) {
 							value = String(cf.value);
 						}
 						break;
 					case 'multiselect':
-						if (isNumber(String(cf.value))) {
+						if (enum_id === undefined && enum_code === undefined && isNumber(String(cf.value))) {
 							enum_id = Number(cf.value);
-						} else {
+						} else if (enum_id === undefined && enum_code === undefined) {
 							value = String(cf.value);
 						}
 						break;
 					case 'radiobutton':
-						if (isNumber(String(cf.value))) {
+						if (enum_id === undefined && enum_code === undefined && isNumber(String(cf.value))) {
 							enum_id = Number(cf.value);
-						} else {
+						} else if (enum_id === undefined && enum_code === undefined) {
 							value = String(cf.value);
 						}
 						break;
 					case 'category':
-						if (isNumber(String(cf.value))) {
+						if (enum_id === undefined && enum_code === undefined && isNumber(String(cf.value))) {
 							enum_id = Number(cf.value);
-						} else {
+						} else if (enum_id === undefined && enum_code === undefined) {
 							value = String(cf.value);
 						}
 						break;
 					case 'multitext':
 						value = String(cf.value);
+						if (enum_id === undefined && enum_code === undefined) enum_code = 'WORK';
 						break;
 					case 'smart_address':
 						value = String(cf.value);
@@ -221,7 +254,11 @@ export const makeCustomFieldReqObject = (customFieldsValues: ICustomFieldValuesF
 				if (value === undefined && enum_id === undefined && enum_code === undefined) return acc;
 				if (typeof value === 'number' && !Number.isFinite(value)) return acc;
 
-				const fieldValue = { value, enum_id, enum_code };
+				const fieldValue = {
+					...(value === undefined ? {} : { value }),
+					...(enum_id === undefined ? {} : { enum_id }),
+					...(enum_code === undefined ? {} : { enum_code }),
+				};
 				const existingRecord = acc.find((item) => item.field_id === data.id);
 				if (existingRecord) {
 					existingRecord.values.push(fieldValue);

@@ -17,6 +17,13 @@ versioning.
 - Preserve each original n8n input index when empty Bulk items are removed before batching.
 - Reconcile Trigger registrations when event settings change or Kommo marks a webhook disabled.
 - Add regression coverage for every urgent audit blocker above.
+- Serialize Lead pipeline and status filters using Kommo's current paired filter contract.
+- Make structured Task updates opt-in, validate required creation deadlines, and require result text
+  when completing tasks.
+- Add missing entity/note IDs to call-note forms and route note queries through entity-specific API
+  paths when entity IDs are supplied.
+- Preserve RFC-3339 Custom Field dates, provide valid multitext enum metadata, and restrict field
+  definition types to supported entities.
 
 ## [0.2.0] - 2026-08-11
 

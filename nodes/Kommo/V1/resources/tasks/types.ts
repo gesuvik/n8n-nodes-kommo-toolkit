@@ -1,17 +1,17 @@
 export interface ITaskModelForm {
-	text: string;
-	complete_till: string;
-	responsible_user_id: number;
-	entity_type: 'contacts' | 'leads' | 'companies' | 'customers';
-	entity_id: string;
-	is_completed: boolean;
-	task_type_id: number;
-	duration: string;
-	resultText: string;
-	created_by: number;
-	updated_by: number;
-	created_at: string;
-	updated_at: string;
+	text?: string;
+	complete_till?: string;
+	responsible_user_id?: number;
+	entity_type?: 'contacts' | 'leads' | 'companies';
+	entity_id?: string;
+	is_completed?: boolean;
+	task_type_id?: number;
+	duration?: string;
+	resultText?: string;
+	created_by?: number;
+	updated_by?: number;
+	created_at?: string;
+	updated_at?: string;
 }
 export interface IFormTask {
 	task: Array<ITaskModelForm>;

@@ -11,7 +11,13 @@ const displayOptions: IDisplayOptions | undefined = {
 };
 
 export const createTaskModel: INodeProperties[] = [
-	...taskModelDescription.filter((el) => el.name !== 'id'),
+	...taskModelDescription
+		.filter((el) => el.name !== 'id')
+		.map((property) =>
+			['text', 'complete_till'].includes(property.name)
+				? { ...property, required: true }
+				: property,
+		),
 ];
 
 export const description: ITasksProperties = [
