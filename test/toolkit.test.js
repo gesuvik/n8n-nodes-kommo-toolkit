@@ -16,6 +16,8 @@ const fakeNode = {
 	position: [0, 0],
 };
 
+const webhookSecret = '0123456789abcdef0123456789abcdef';
+
 function returnJsonArray(data) {
 	return (Array.isArray(data) ? data : [data]).map((json) => ({ json }));
 }
@@ -38,6 +40,14 @@ test('toolkit exposes four node types and 68 configured Kommo operations', () =>
 		[main, api, bulk, trigger].map((node) => node.description.name),
 		['kommo', 'kommoApi', 'kommoBulk', 'kommoTrigger'],
 	);
+	for (const node of [main, api, bulk, trigger]) {
+		assert.equal(
+			node.description.properties.find((property) => property.name === 'authentication')
+				.noDataExpression,
+			true,
+			`${node.description.name} authentication must not vary by input item`,
+		);
+	}
 });
 
 test('advanced API endpoint normalization accepts relative paths and rejects URL injection', () => {
@@ -252,12 +262,14 @@ test('bulk list operations reject non-numeric catalog IDs before making a reques
 test('trigger registers and removes its own Kommo webhook', async () => {
 	const requests = [];
 	const destination = 'https://n8n.example/webhook/kommo';
+	const securedDestination = `${destination}?kommo_secret=${webhookSecret}`;
 	let registeredWebhook;
 	const context = {
 		getNodeWebhookUrl: () => destination,
 		getNodeParameter(name) {
 			if (name === 'events') return ['add_lead', 'status_lead'];
 			if (name === 'authentication') return 'longLivedToken';
+			if (name === 'webhookSecret') return webhookSecret;
 			throw new Error(`Unexpected parameter: ${name}`);
 		},
 		getCredentials: async () => ({ subdomain: 'example' }),
@@ -283,10 +295,10 @@ test('trigger registers and removes its own Kommo webhook', async () => {
 	assert.equal(registeredWebhook, undefined);
 	assert.deepEqual(
 		requests.map((request) => request.method),
-		['GET', 'GET', 'POST', 'GET', 'GET', 'DELETE'],
+		['GET', 'GET', 'GET', 'POST', 'GET', 'GET', 'DELETE', 'GET'],
 	);
-	assert.deepEqual(requests[2].body, {
-		destination,
+	assert.deepEqual(requests[3].body, {
+		destination: securedDestination,
 		settings: ['add_lead', 'status_lead'],
 	});
 });
@@ -294,6 +306,7 @@ test('trigger registers and removes its own Kommo webhook', async () => {
 test('trigger replaces disabled or stale webhook registrations', async () => {
 	const requests = [];
 	const destination = 'https://n8n.example/webhook/kommo';
+	const securedDestination = `${destination}?kommo_secret=${webhookSecret}`;
 	let registeredWebhook = {
 		destination,
 		settings: ['add_lead'],
@@ -304,6 +317,7 @@ test('trigger replaces disabled or stale webhook registrations', async () => {
 		getNodeParameter(name) {
 			if (name === 'events') return ['status_lead', 'add_lead'];
 			if (name === 'authentication') return 'longLivedToken';
+			if (name === 'webhookSecret') return webhookSecret;
 			throw new Error(`Unexpected parameter: ${name}`);
 		},
 		getCredentials: async () => ({ subdomain: 'example' }),
@@ -329,10 +343,49 @@ test('trigger replaces disabled or stale webhook registrations', async () => {
 	assert.equal(await methods.checkExists.call(context), true);
 	assert.deepEqual(
 		requests.map((request) => request.method),
-		['GET', 'GET', 'DELETE', 'POST', 'GET'],
+		['GET', 'GET', 'GET', 'DELETE', 'POST', 'GET'],
 	);
-	assert.deepEqual(requests[3].body, {
-		destination,
+	assert.deepEqual(requests[4].body, {
+		destination: securedDestination,
 		settings: ['add_lead', 'status_lead'],
 	});
+});
+
+test('trigger rejects unauthenticated webhooks and redacts its secret from metadata', async () => {
+	let statusCode;
+	let responseBody;
+	const rejectedContext = {
+		getNodeParameter(name) {
+			if (name === 'webhookSecret') return webhookSecret;
+			if (name === 'includeRequestMetadata') return true;
+			throw new Error(`Unexpected parameter: ${name}`);
+		},
+		getNode: () => fakeNode,
+		getBodyData: () => ({ leads: { add: [{ id: '10' }] } }),
+		getQueryData: () => ({ kommo_secret: 'wrong-secret' }),
+		getHeaderData: () => ({}),
+		getResponseObject: () => ({
+			status(code) {
+				statusCode = code;
+				return this;
+			},
+			send(body) {
+				responseBody = body;
+				return this;
+			},
+		}),
+		helpers: { returnJsonArray },
+	};
+
+	const rejected = await new KommoTrigger().webhook.call(rejectedContext);
+	assert.equal(statusCode, 401);
+	assert.equal(responseBody, 'Unauthorized');
+	assert.deepEqual(rejected, { noWebhookResponse: true });
+
+	const acceptedContext = {
+		...rejectedContext,
+		getQueryData: () => ({ kommo_secret: webhookSecret, source: 'kommo' }),
+	};
+	const accepted = await new KommoTrigger().webhook.call(acceptedContext);
+	assert.deepEqual(accepted.workflowData[0][0].json.query, { source: 'kommo' });
 });

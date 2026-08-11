@@ -76,6 +76,7 @@ export class KommoV1 {
 					displayName: 'Authentication',
 					name: 'authentication',
 					type: 'options',
+					noDataExpression: true,
 					options: [
 						{
 							name: 'Long Lived Token',

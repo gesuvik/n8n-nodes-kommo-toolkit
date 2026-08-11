@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import {
 	IDataObject,
 	IHookFunctions,
@@ -11,6 +12,35 @@ import {
 import { webhookEventOptions } from './V1/helpers/webhookEvents';
 import { extractEmbedded } from './V1/resources/_shared';
 import { apiRequest } from './V1/transport';
+
+const WEBHOOK_SECRET_PARAMETER = 'kommo_secret';
+const MINIMUM_WEBHOOK_SECRET_LENGTH = 32;
+
+function getWebhookSecret(context: IHookFunctions | IWebhookFunctions): string {
+	const secret = String(context.getNodeParameter('webhookSecret') ?? '').trim();
+	if (secret.length < MINIMUM_WEBHOOK_SECRET_LENGTH) {
+		throw new NodeOperationError(
+			context.getNode(),
+			`Webhook Secret must contain at least ${MINIMUM_WEBHOOK_SECRET_LENGTH} characters`,
+		);
+	}
+	return secret;
+}
+
+function addWebhookSecret(destination: string, secret: string): string {
+	const url = new URL(destination);
+	url.searchParams.set(WEBHOOK_SECRET_PARAMETER, secret);
+	return url.toString();
+}
+
+function secretsMatch(expected: string, received: unknown): boolean {
+	if (typeof received !== 'string') return false;
+	const expectedBytes = Buffer.from(expected);
+	const receivedBytes = Buffer.from(received);
+	return (
+		expectedBytes.length === receivedBytes.length && timingSafeEqual(expectedBytes, receivedBytes)
+	);
+}
 
 async function getRegisteredWebhooks(
 	context: IHookFunctions,
@@ -85,6 +115,7 @@ export class KommoTrigger implements INodeType {
 				displayName: 'Authentication',
 				name: 'authentication',
 				type: 'options',
+				noDataExpression: true,
 				options: [
 					{ name: 'Long Lived Token', value: 'longLivedToken' },
 					{ name: 'OAuth2', value: 'oAuth2' },
@@ -102,6 +133,17 @@ export class KommoTrigger implements INodeType {
 					'Events that activate the workflow. Administrator rights are required to register webhooks.',
 			},
 			{
+				displayName: 'Webhook Secret',
+				name: 'webhookSecret',
+				type: 'string',
+				typeOptions: { password: true },
+				noDataExpression: true,
+				default: '',
+				required: true,
+				description:
+					'A private value of at least 32 characters used to authenticate every incoming Kommo webhook',
+			},
+			{
 				displayName: 'Include Request Metadata',
 				name: 'includeRequestMetadata',
 				type: 'boolean',
@@ -115,32 +157,44 @@ export class KommoTrigger implements INodeType {
 	webhookMethods = {
 		default: {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
-				const destination = this.getNodeWebhookUrl('default');
-				if (!destination) return false;
+				const rawDestination = this.getNodeWebhookUrl('default');
+				if (!rawDestination) return false;
+				const destination = addWebhookSecret(rawDestination, getWebhookSecret(this));
 				const settings = normalizeSettings(this.getNodeParameter('events'));
 				const webhooks = await getRegisteredWebhooks(this, destination);
 				return webhooks.some((webhook) => webhookMatches(webhook, destination, settings));
 			},
 			async create(this: IHookFunctions): Promise<boolean> {
-				const destination = this.getNodeWebhookUrl('default');
-				if (!destination) {
+				const rawDestination = this.getNodeWebhookUrl('default');
+				if (!rawDestination) {
 					throw new NodeOperationError(this.getNode(), 'Could not generate the n8n webhook URL');
 				}
+				const destination = addWebhookSecret(rawDestination, getWebhookSecret(this));
 				const settings = normalizeSettings(this.getNodeParameter('events'));
 				const webhooks = await getRegisteredWebhooks(this, destination);
 				if (webhooks.some((webhook) => webhookMatches(webhook, destination, settings))) return true;
 				if (webhooks.some((webhook) => webhook.destination === destination)) {
 					await apiRequest.call(this, 'DELETE', 'webhooks', { destination });
 				}
+				const legacyWebhooks = await getRegisteredWebhooks(this, rawDestination);
+				if (legacyWebhooks.some((webhook) => webhook.destination === rawDestination)) {
+					await apiRequest.call(this, 'DELETE', 'webhooks', { destination: rawDestination });
+				}
 				await apiRequest.call(this, 'POST', 'webhooks', { destination, settings });
 				return true;
 			},
 			async delete(this: IHookFunctions): Promise<boolean> {
-				const destination = this.getNodeWebhookUrl('default');
-				if (!destination) return true;
+				const rawDestination = this.getNodeWebhookUrl('default');
+				if (!rawDestination) return true;
+				const destination = addWebhookSecret(rawDestination, getWebhookSecret(this));
 				const webhooks = await getRegisteredWebhooks(this, destination);
-				if (!webhooks.some((webhook) => webhook.destination === destination)) return true;
-				await apiRequest.call(this, 'DELETE', 'webhooks', { destination });
+				if (webhooks.some((webhook) => webhook.destination === destination)) {
+					await apiRequest.call(this, 'DELETE', 'webhooks', { destination });
+				}
+				const legacyWebhooks = await getRegisteredWebhooks(this, rawDestination);
+				if (legacyWebhooks.some((webhook) => webhook.destination === rawDestination)) {
+					await apiRequest.call(this, 'DELETE', 'webhooks', { destination: rawDestination });
+				}
 				return true;
 			},
 		},
@@ -148,12 +202,19 @@ export class KommoTrigger implements INodeType {
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
 		const body = this.getBodyData();
+		const query = { ...this.getQueryData() } as IDataObject;
+		const secret = getWebhookSecret(this);
+		if (!secretsMatch(secret, query[WEBHOOK_SECRET_PARAMETER])) {
+			this.getResponseObject().status(401).send('Unauthorized');
+			return { noWebhookResponse: true };
+		}
+		delete query[WEBHOOK_SECRET_PARAMETER];
 		const includeMetadata = this.getNodeParameter('includeRequestMetadata') as boolean;
 		const data: IDataObject = includeMetadata
 			? {
 					body,
 					headers: this.getHeaderData() as IDataObject,
-					query: this.getQueryData() as IDataObject,
+					query,
 					receivedAt: new Date().toISOString(),
 				}
 			: body;

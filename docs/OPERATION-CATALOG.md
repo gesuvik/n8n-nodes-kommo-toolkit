@@ -32,7 +32,9 @@ relative to `https://{subdomain}.kommo.com/api/v4/`.
 
 The trigger subscribes to selected webhook event codes when a workflow is activated and removes
 its destination when the workflow is deactivated. It can return either the request body alone or
-the body with headers, query parameters, and receive time.
+the body with headers, query parameters, and receive time. A private secret of at least 32
+characters is added to the registered destination and validated on every event; it is redacted from
+the optional request metadata.
 
 ### Kommo Bulk
 

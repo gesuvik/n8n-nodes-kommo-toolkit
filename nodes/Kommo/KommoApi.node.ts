@@ -58,6 +58,7 @@ export class KommoApi implements INodeType {
 				displayName: 'Authentication',
 				name: 'authentication',
 				type: 'options',
+				noDataExpression: true,
 				options: [
 					{ name: 'Long Lived Token', value: 'longLivedToken' },
 					{ name: 'OAuth2', value: 'oAuth2' },
