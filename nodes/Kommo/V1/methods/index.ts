@@ -65,6 +65,16 @@ export const getStatuses = cacheOptionsRequest(async function getStatuses(
 	return [];
 });
 
+export const getLeadFilterStatuses = cacheOptionsRequest(async function getLeadFilterStatuses(
+	this: ILoadOptionsFunctions,
+): Promise<INodePropertyOptions[]> {
+	const statuses = await getAllStatuses.call(this);
+	return statuses.map((status) => ({
+		name: `${status.name} (${status.pipeline_name})`,
+		value: JSON.stringify({ pipeline_id: status.pipeline_id, status_id: status.id }),
+	}));
+});
+
 export const getStatusesWithoutUnsorted = cacheOptionsRequest(
 	async function getStatusesWithoutUnsorted(
 		this: ILoadOptionsFunctions,
