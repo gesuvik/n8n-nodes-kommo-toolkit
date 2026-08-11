@@ -1,4 +1,4 @@
-import { INodeExecutionData, IExecuteFunctions } from 'n8n-workflow';
+import { INodeExecutionData, IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
 import {
 	IAttachmentNoteParams,
 	ICallInNoteParams,
@@ -45,6 +45,12 @@ export async function execute(
 	const body = noteTypes
 		.flatMap((noteType) => {
 			return formNotes[noteType]?.map((el) => {
+				if (!Number.isSafeInteger(Number(el.id)) || Number(el.id) <= 0) {
+					throw new NodeOperationError(this.getNode(), 'Note ID must be a positive integer');
+				}
+				if (!Number.isSafeInteger(Number(el.entity_id)) || Number(el.entity_id) <= 0) {
+					throw new NodeOperationError(this.getNode(), 'Entity ID must be a positive integer');
+				}
 				let params, element;
 				switch (noteType) {
 					case 'attachment':
@@ -145,7 +151,8 @@ export async function execute(
 					: undefined;
 			});
 		})
-		.map(clearNullableProps);
+		.map(clearNullableProps)
+		.filter((note) => note !== undefined);
 
 	const responseData = await apiRequest.call(this, requestMethod, endpoint, body);
 	return this.helpers.returnJsonArray(responseData);

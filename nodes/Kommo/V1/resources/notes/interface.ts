@@ -1,4 +1,4 @@
-export type EntityType = 'leads' | 'contacts' | 'companies' | 'customers';
+export type EntityType = 'leads' | 'contacts' | 'companies';
 
 export interface IGeneral {
 	id?: number;

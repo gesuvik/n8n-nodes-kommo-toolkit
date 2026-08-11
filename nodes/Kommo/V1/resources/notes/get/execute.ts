@@ -1,14 +1,19 @@
-import { IDataObject, INodeExecutionData, IExecuteFunctions } from 'n8n-workflow';
+import {
+	IDataObject,
+	INodeExecutionData,
+	IExecuteFunctions,
+	NodeOperationError,
+} from 'n8n-workflow';
 import { INumRange, IStringRange } from '../../../Interface';
 
 import { apiRequest, apiRequestAllItems } from '../../../transport';
 import { makeRangeProperty } from '../../_components/DateRangeDescription';
 import { clearNullableProps } from '../../../helpers/clearNullableProps';
 import { stringToArray } from '../../../helpers/stringToArray';
+import { extractEmbedded } from '../../_shared';
 
 interface IFilter {
 	id?: number[];
-	entity_id?: number[];
 	note_type?: string[];
 	updated_at: INumRange;
 }
@@ -32,11 +37,15 @@ export async function execute(
 	//--------------------------------Add filter--------------------------------------
 
 	const filter = this.getNodeParameter('filter', index) as FilterFromFrontend;
+	const entityIds = stringToArray(filter.entity_id)
+		.map((value) => (typeof value === 'number' ? value : Number.NaN))
+		.filter((value) => Number.isSafeInteger(value) && value > 0);
+	if (filter.entity_id?.trim() && !entityIds.length) {
+		throw new NodeOperationError(this.getNode(), 'Entity IDs must be positive integers');
+	}
 
 	const normalizedFilter = clearNullableProps({
-		...filter,
 		id: stringToArray(filter.id).filter((value) => typeof value === 'number'),
-		entity_id: stringToArray(filter.entity_id).filter((value) => typeof value === 'number'),
 		note_type: filter.note_type,
 		updated_at: makeRangeProperty(filter.updated_at?.dateRangeCustomProperties),
 	}) as IFilter | undefined;
@@ -73,20 +82,28 @@ export async function execute(
 	//---------------------------------------------------------------------------------
 
 	const requestMethod = 'GET';
-	const endpoint = this.getNodeParameter('entity_type', index) + '/notes';
+	const entityType = this.getNodeParameter('entity_type', index) as string;
+	const endpoints = entityIds.length
+		? entityIds.map((entityId) => `${entityType}/${entityId}/notes`)
+		: [`${entityType}/notes`];
+	const notes: IDataObject[] = [];
 
-	if (returnAll) {
-		const responseData = await apiRequestAllItems.call(
-			this,
-			requestMethod,
-			endpoint,
-			body,
-			qs,
-			'notes',
-		);
-		return this.helpers.returnJsonArray(responseData);
+	for (const endpoint of endpoints) {
+		if (returnAll) {
+			const responseData = await apiRequestAllItems.call(
+				this,
+				requestMethod,
+				endpoint,
+				body,
+				{ ...qs },
+				'notes',
+			);
+			notes.push(...responseData);
+		} else {
+			const responseData = await apiRequest.call(this, requestMethod, endpoint, body, { ...qs });
+			notes.push(...extractEmbedded(responseData, 'notes'));
+		}
 	}
 
-	const responseData = await apiRequest.call(this, requestMethod, endpoint, body, qs);
-	return this.helpers.returnJsonArray(responseData);
+	return this.helpers.returnJsonArray(notes);
 }

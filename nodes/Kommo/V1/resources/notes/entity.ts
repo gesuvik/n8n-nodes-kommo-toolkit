@@ -12,13 +12,14 @@ export const generalOptions: INodeProperties[] = [
 		displayName: 'Entity ID',
 		name: 'entity_id',
 		type: 'number',
-		default: '',
+		default: undefined,
+		required: true,
 	},
 	{
 		displayName: 'Created by User Name or ID',
 		name: 'created_by',
 		type: 'options',
-		default: 0,
+		default: undefined,
 		typeOptions: {
 			loadOptionsMethod: 'getActiveUsersWithRobot',
 		},
@@ -51,10 +52,6 @@ export const entityType = (displayOptions: IDisplayOptions): INodeProperties[] =
 			{
 				name: 'Company',
 				value: 'companies',
-			},
-			{
-				name: 'Customer',
-				value: 'customers',
 			},
 		],
 		displayOptions,
@@ -94,6 +91,8 @@ export const getNotesDescription = (
 				displayName: 'Call In',
 				name: 'call_in',
 				values: [
+					...nodeProperties,
+					...generalOptions,
 					{
 						displayName: 'Call Responsible',
 						name: 'call_responsible',
@@ -130,12 +129,15 @@ export const getNotesDescription = (
 						type: 'string',
 						default: '',
 					},
+					addRequestId(),
 				],
 			},
 			{
 				displayName: 'Call Out',
 				name: 'call_out',
 				values: [
+					...nodeProperties,
+					...generalOptions,
 					{
 						displayName: 'Call Responsible Name or ID',
 						name: 'call_responsible',
@@ -174,6 +176,7 @@ export const getNotesDescription = (
 						type: 'string',
 						default: '',
 					},
+					addRequestId(),
 				],
 			},
 			{
