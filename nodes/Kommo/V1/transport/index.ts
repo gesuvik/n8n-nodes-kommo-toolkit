@@ -11,9 +11,9 @@ import {
 	NodeOperationError,
 	sleep,
 } from 'n8n-workflow';
+import { buildKommoApiUrl, normalizeKommoSubdomain } from '../../../../credentials/kommoUrl';
 
 const MIN_REQUEST_INTERVAL_MS = 150;
-const SUBDOMAIN_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
 
 let nextRequestAt = 0;
 let requestScheduler = Promise.resolve();
@@ -53,11 +53,20 @@ export async function apiRequest(
 	const authenticationMethod = this.getNodeParameter('authentication', 0) as string;
 	const credentialType = authenticationMethod === 'oAuth2' ? 'kommoOAuth2Api' : 'kommoLongLivedApi';
 	const credentials = await this.getCredentials(credentialType);
-	const subdomain = String(credentials.subdomain ?? '').trim();
-
-	if (!SUBDOMAIN_PATTERN.test(subdomain)) {
+	let subdomain: string;
+	try {
+		subdomain = normalizeKommoSubdomain(credentials.subdomain);
+	} catch {
 		throw new NodeOperationError(this.getNode(), 'Invalid Kommo account subdomain', {
 			description: 'Enter only the subdomain, without protocol, dots, slashes, or .kommo.com.',
+		});
+	}
+	let url: string;
+	try {
+		url = buildKommoApiUrl(subdomain, endpoint);
+	} catch {
+		throw new NodeOperationError(this.getNode(), 'Invalid Kommo API endpoint', {
+			description: 'Use only API paths relative to /api/v4, without encoded or special characters.',
 		});
 	}
 
@@ -65,7 +74,9 @@ export async function apiRequest(
 		method,
 		body,
 		qs,
-		url: `https://${subdomain}.kommo.com/api/v4/${endpoint}`,
+		url,
+		allowedDomains: `${subdomain}.kommo.com`,
+		sendCredentialsOnCrossOriginRedirect: false,
 		headers: {
 			'content-type': 'application/json; charset=utf-8',
 		},
@@ -89,6 +100,7 @@ export async function apiRequestAllItems(
 	endpoint: string,
 	body: IDataObject = {},
 	query: IDataObject = {},
+	embeddedKey?: string,
 ) {
 	// Kommo endpoints return different HAL envelopes; callers narrow the response shape.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,7 +114,12 @@ export async function apiRequestAllItems(
 	do {
 		responseData = await apiRequest.call(this, method, endpoint, body, query);
 		query.page++;
-		returnData.push(responseData);
+		if (embeddedKey) {
+			const embedded = responseData?._embedded?.[embeddedKey];
+			if (Array.isArray(embedded)) returnData.push(...embedded);
+		} else {
+			returnData.push(responseData);
+		}
 	} while (responseData._links?.next?.href?.length);
 
 	return returnData;

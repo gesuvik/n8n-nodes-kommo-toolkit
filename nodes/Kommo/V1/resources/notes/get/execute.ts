@@ -76,7 +76,14 @@ export async function execute(
 	const endpoint = this.getNodeParameter('entity_type', index) + '/notes';
 
 	if (returnAll) {
-		const responseData = await apiRequestAllItems.call(this, requestMethod, endpoint, body, qs);
+		const responseData = await apiRequestAllItems.call(
+			this,
+			requestMethod,
+			endpoint,
+			body,
+			qs,
+			'notes',
+		);
 		return this.helpers.returnJsonArray(responseData);
 	}
 

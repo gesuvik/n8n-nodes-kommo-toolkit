@@ -46,7 +46,14 @@ export async function execute(
 	const endpoint = `catalogs/${listId}/elements`;
 
 	if (returnAll) {
-		const responseData = await apiRequestAllItems.call(this, requestMethod, endpoint, body, qs);
+		const responseData = await apiRequestAllItems.call(
+			this,
+			requestMethod,
+			endpoint,
+			body,
+			qs,
+			'elements',
+		);
 		return this.helpers.returnJsonArray(responseData);
 	}
 

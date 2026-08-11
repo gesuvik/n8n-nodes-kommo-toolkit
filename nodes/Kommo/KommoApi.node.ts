@@ -8,6 +8,7 @@ import {
 	NodeConnectionTypes,
 	NodeOperationError,
 } from 'n8n-workflow';
+import { normalizeKommoApiPath } from '../../credentials/kommoUrl';
 import { parseOptionalJson } from './V1/helpers/parseJson';
 import { extractEmbedded, outputResponse } from './V1/resources/_shared';
 import { apiRequest, apiRequestAllItems } from './V1/transport';
@@ -17,20 +18,14 @@ export function normalizeApiEndpoint(node: INode, endpoint: string): string {
 		.trim()
 		.replace(/^\/+/, '')
 		.replace(/^api\/v4\//, '');
-	if (
-		!normalized ||
-		normalized.includes('://') ||
-		normalized.includes('..') ||
-		normalized.includes('\\') ||
-		normalized.includes('?') ||
-		normalized.includes('#')
-	) {
+	try {
+		return normalizeKommoApiPath(normalized);
+	} catch {
 		throw new NodeOperationError(
 			node,
 			'Endpoint must be a safe path relative to /api/v4, without a query string',
 		);
 	}
-	return normalized;
 }
 
 export class KommoApi implements INodeType {
