@@ -8,6 +8,8 @@ Request nodes.
 Version `0.2.0` builds on the original
 [`n8n-nodes-kommo`](https://github.com/yatolstoy/n8n-nodes-kommo) project and uses its own npm package
 identity so it can be installed directly from n8n as an unverified community package.
+The original project was created by Yaroslav Tolstoy and is licensed under the MIT License. This
+toolkit preserves that copyright notice and documents its additional changes in the changelog.
 
 ## Nodes
 
@@ -147,8 +149,7 @@ See [CHANGELOG.md](CHANGELOG.md) for fixes, additions, and migration notes.
 
 ## Attribution and upstream
 
-The original project was created by Yaroslav Tolstoy and is licensed under the MIT License. This
-toolkit preserves that copyright notice and documents its additional changes in the changelog.
+
 Upstream links are preserved for attribution; toolkit-specific issues should not be reported as
 upstream defects without reproducing them on the original package.
 
