@@ -6,6 +6,8 @@ versioning.
 
 ## [Unreleased]
 
+## [0.3.0-beta.1] - 2026-08-12
+
 ### Fixed
 
 - Constrain credential tests, OAuth token exchange, authenticated API calls, and cross-origin

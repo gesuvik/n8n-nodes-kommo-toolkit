@@ -1,4 +1,4 @@
-# Guía rápida de pruebas — Kommo Toolkit 0.2.0
+# Guía rápida de pruebas — Kommo Toolkit 0.3.0-beta.1
 
 ## Antes de instalar
 

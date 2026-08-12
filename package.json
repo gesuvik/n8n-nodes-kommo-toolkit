@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-kommo-toolkit",
-	"version": "0.2.0",
+	"version": "0.3.0-beta.1",
 	"description": "Extended Kommo community nodes for n8n: 68 operations, webhooks, bulk actions, and an API escape hatch",
 	"keywords": [
 		"n8n-community-node-package",
