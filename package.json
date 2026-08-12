@@ -53,7 +53,8 @@
 		"strict": true,
 		"credentials": [
 			"dist/credentials/kommoOAuth2Api.credentials.js",
-			"dist/credentials/kommoLongLivedApi.credentials.js"
+			"dist/credentials/kommoLongLivedApi.credentials.js",
+			"dist/credentials/kommoWebhookSecretApi.credentials.js"
 		],
 		"nodes": [
 			"dist/nodes/Kommo/Kommo.node.js",

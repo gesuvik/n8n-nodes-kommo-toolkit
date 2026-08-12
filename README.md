@@ -98,9 +98,9 @@ rejects domains, URLs, dots, and paths in the subdomain field before making a re
 ## Usage notes
 
 - **Kommo Trigger** needs Kommo administrator rights, a publicly reachable HTTPS production webhook
-  URL, and a private **Webhook Secret** of at least 32 characters. Kommo receives the secret only as
-  part of its registered destination; the node rejects events without it and removes it from output
-  metadata.
+  URL, and a dedicated **Kommo Webhook Secret API** credential containing at least 32 random
+  characters. n8n stores the value as credential data; Kommo receives it only as part of its
+  registered destination. The node rejects events without it and removes it from output metadata.
 - **Kommo Bulk** accepts incoming n8n items or a JSON array. It caps batches at 50, removes empty
   values optionally, and preserves `pairedItem` links to source items.
 - **Kommo API** accepts only relative API paths. Protocols, parent traversal, backslashes, query

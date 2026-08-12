@@ -32,3 +32,9 @@ test('published files are explicitly allowlisted', () => {
 	assert.ok(!manifest.files.includes('test'));
 	assert.ok(!manifest.files.includes('artifacts'));
 });
+
+test('package includes the dedicated webhook-secret credential', () => {
+	assert.ok(
+		manifest.n8n.credentials.includes('dist/credentials/kommoWebhookSecretApi.credentials.js'),
+	);
+});

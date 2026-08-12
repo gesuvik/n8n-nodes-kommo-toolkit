@@ -28,13 +28,14 @@ versioning.
   Link pairs or metadata that Kommo does not support.
 - Remove obsolete structured filters, entity types, list types, and expansion options from Contacts,
   Companies, Tasks, and Lists; add contact/company restoration webhook events.
-- Keep authentication selection node-wide and require a private 32-character secret for Trigger
-  registration and every incoming webhook request.
+- Keep authentication selection node-wide and require a dedicated credential containing a private
+  32-character secret for Trigger registration and every incoming webhook request.
 
 ### Migration notes
 
-- Existing Trigger workflows must configure a new **Webhook Secret** of at least 32 characters and
-  reactivate the workflow so the secured Kommo webhook replaces its legacy registration.
+- Existing Trigger workflows must create and select a **Kommo Webhook Secret API** credential
+  containing at least 32 random characters, then reactivate the workflow so the secured Kommo
+  webhook replaces its legacy registration.
 
 ## [0.2.0] - 2026-08-11
 

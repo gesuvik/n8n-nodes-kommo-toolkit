@@ -1,7 +1,10 @@
 import { timingSafeEqual } from 'node:crypto';
 import {
+	ICredentialDataDecryptedObject,
+	ICredentialsDecrypted,
 	IDataObject,
 	IHookFunctions,
+	INodeCredentialTestResult,
 	INodeType,
 	INodeTypeDescription,
 	IWebhookFunctions,
@@ -16,8 +19,9 @@ import { apiRequest } from './V1/transport';
 const WEBHOOK_SECRET_PARAMETER = 'kommo_secret';
 const MINIMUM_WEBHOOK_SECRET_LENGTH = 32;
 
-function getWebhookSecret(context: IHookFunctions | IWebhookFunctions): string {
-	const secret = String(context.getNodeParameter('webhookSecret') ?? '').trim();
+async function getWebhookSecret(context: IHookFunctions | IWebhookFunctions): Promise<string> {
+	const credentials = await context.getCredentials('kommoWebhookSecretApi');
+	const secret = String(credentials.secret ?? '').trim();
 	if (secret.length < MINIMUM_WEBHOOK_SECRET_LENGTH) {
 		throw new NodeOperationError(
 			context.getNode(),
@@ -92,6 +96,11 @@ export class KommoTrigger implements INodeType {
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
+				name: 'kommoWebhookSecretApi',
+				required: true,
+				testedBy: 'validateWebhookSecret',
+			},
+			{
 				name: 'kommoOAuth2Api',
 				required: true,
 				displayOptions: { show: { authentication: ['oAuth2'] } },
@@ -133,17 +142,6 @@ export class KommoTrigger implements INodeType {
 					'Events that activate the workflow. Administrator rights are required to register webhooks.',
 			},
 			{
-				displayName: 'Webhook Secret',
-				name: 'webhookSecret',
-				type: 'string',
-				typeOptions: { password: true },
-				noDataExpression: true,
-				default: '',
-				required: true,
-				description:
-					'A private value of at least 32 characters used to authenticate every incoming Kommo webhook',
-			},
-			{
 				displayName: 'Include Request Metadata',
 				name: 'includeRequestMetadata',
 				type: 'boolean',
@@ -154,12 +152,29 @@ export class KommoTrigger implements INodeType {
 		usableAsTool: true,
 	};
 
+	methods = {
+		credentialTest: {
+			async validateWebhookSecret(
+				credential: ICredentialsDecrypted<ICredentialDataDecryptedObject>,
+			): Promise<INodeCredentialTestResult> {
+				const secret = String(credential.data?.secret ?? '').trim();
+				if (secret.length < MINIMUM_WEBHOOK_SECRET_LENGTH) {
+					return {
+						status: 'Error',
+						message: `Webhook Secret must contain at least ${MINIMUM_WEBHOOK_SECRET_LENGTH} characters`,
+					};
+				}
+				return { status: 'OK', message: 'Webhook Secret is valid' };
+			},
+		},
+	};
+
 	webhookMethods = {
 		default: {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				const rawDestination = this.getNodeWebhookUrl('default');
 				if (!rawDestination) return false;
-				const destination = addWebhookSecret(rawDestination, getWebhookSecret(this));
+				const destination = addWebhookSecret(rawDestination, await getWebhookSecret(this));
 				const settings = normalizeSettings(this.getNodeParameter('events'));
 				const webhooks = await getRegisteredWebhooks(this, destination);
 				return webhooks.some((webhook) => webhookMatches(webhook, destination, settings));
@@ -169,7 +184,7 @@ export class KommoTrigger implements INodeType {
 				if (!rawDestination) {
 					throw new NodeOperationError(this.getNode(), 'Could not generate the n8n webhook URL');
 				}
-				const destination = addWebhookSecret(rawDestination, getWebhookSecret(this));
+				const destination = addWebhookSecret(rawDestination, await getWebhookSecret(this));
 				const settings = normalizeSettings(this.getNodeParameter('events'));
 				const webhooks = await getRegisteredWebhooks(this, destination);
 				if (webhooks.some((webhook) => webhookMatches(webhook, destination, settings))) return true;
@@ -186,7 +201,7 @@ export class KommoTrigger implements INodeType {
 			async delete(this: IHookFunctions): Promise<boolean> {
 				const rawDestination = this.getNodeWebhookUrl('default');
 				if (!rawDestination) return true;
-				const destination = addWebhookSecret(rawDestination, getWebhookSecret(this));
+				const destination = addWebhookSecret(rawDestination, await getWebhookSecret(this));
 				const webhooks = await getRegisteredWebhooks(this, destination);
 				if (webhooks.some((webhook) => webhook.destination === destination)) {
 					await apiRequest.call(this, 'DELETE', 'webhooks', { destination });
@@ -203,7 +218,7 @@ export class KommoTrigger implements INodeType {
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
 		const body = this.getBodyData();
 		const query = { ...this.getQueryData() } as IDataObject;
-		const secret = getWebhookSecret(this);
+		const secret = await getWebhookSecret(this);
 		if (!secretsMatch(secret, query[WEBHOOK_SECRET_PARAMETER])) {
 			this.getResponseObject().status(401).send('Unauthorized');
 			return { noWebhookResponse: true };
