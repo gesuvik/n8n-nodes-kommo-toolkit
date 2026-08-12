@@ -1,6 +1,6 @@
 # Kommo toolkit operation catalog
 
-Version `0.2.0` exposes four n8n node types and 68 configured operations. Endpoint paths below are
+Version `0.3.0-beta.1` exposes four n8n node types and 68 configured operations. Endpoint paths below are
 relative to `https://{subdomain}.kommo.com/api/v4/`.
 
 ## Main Kommo node

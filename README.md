@@ -5,7 +5,7 @@ keeps the original Kommo node compatible while adding native resources, a webhoo
 batch-oriented writes, and a guarded API escape hatch so workflows need fewer hand-built HTTP
 Request nodes.
 
-Version `0.2.0` builds on the original
+Version `0.3.0-beta.1` builds on the original
 [`n8n-nodes-kommo`](https://github.com/yatolstoy/n8n-nodes-kommo) project and uses its own npm package
 identity so it can be installed directly from n8n as an unverified community package.
 The original project was created by Yaroslav Tolstoy and is licensed under the MIT License. This
@@ -150,7 +150,6 @@ See [CHANGELOG.md](CHANGELOG.md) for fixes, additions, and migration notes.
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
 
 ## Attribution and upstream
-
 
 Upstream links are preserved for attribution; toolkit-specific issues should not be reported as
 upstream defects without reproducing them on the original package.
