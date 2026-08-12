@@ -60,7 +60,6 @@ export const description: ITasksProperties = [
 					value: 'contacts',
 				},
 				{ name: 'Companies', value: 'companies' },
-				{ name: 'Customers', value: 'customers' },
 			],
 		},
 		{

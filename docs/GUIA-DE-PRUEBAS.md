@@ -40,8 +40,10 @@ El último comando crea un archivo `.tgz` instalable o publicable.
 2. **Lecturas nativas**: probá `Pipeline > Get Many`, `Pipeline Stage > Get Many`, `User > Get Many`
    y `Event > Get Types`.
 3. **Webhook**: creá un workflow con `Kommo Trigger`, seleccioná `Lead Added` y `Lead Status
-Changed`, activalo y verificá que Kommo registre la URL de producción. Generá un lead de prueba y
-   confirmá la salida del trigger. Al desactivar el workflow, verificá que la suscripción desaparezca.
+Changed`, creá y seleccioná una credencial **Kommo Webhook Secret API** con al menos 32 caracteres
+   aleatorios, activalo y verificá que Kommo registre la URL de producción. Generá un lead de prueba
+   y confirmá la salida del trigger. Al desactivar el workflow, verificá que la suscripción
+   desaparezca.
 4. **Lotes**: mandá 51 leads ficticios a `Kommo Bulk` en una cuenta sandbox. Deben producirse dos
    requests internos, de 50 y 1 elemento, y 51 salidas enlazadas con sus entradas.
 5. **API avanzada**: probá `Kommo API` con método GET, endpoint `account`, Query JSON `{}`. Luego
@@ -56,7 +58,9 @@ Changed`, activalo y verificá que Kommo registre la URL de producción. Generá
 - `Continue On Fail` debe conservar el item fallido y adjuntar el error.
 - Una URL completa o un endpoint con `..`, `?`, `#` o `\\` debe ser rechazado por `Kommo API` antes
   de realizar la llamada.
-- El trigger necesita permisos administrativos en Kommo y una URL HTTPS accesible públicamente.
+- El trigger necesita permisos administrativos en Kommo, una URL HTTPS accesible públicamente y un
+  secreto de al menos 32 caracteres. Una llamada directa sin el secreto debe responder `401` y no
+  ejecutar el workflow.
 
 ## Alcance de esta versión
 

@@ -3,6 +3,9 @@ const { test } = require('node:test');
 
 const { execute: getLeads } = require('../dist/nodes/Kommo/V1/resources/leads/get/execute.js');
 const {
+	execute: updateLeads,
+} = require('../dist/nodes/Kommo/V1/resources/leads/update/execute.js');
+const {
 	description: getLeadsDescription,
 } = require('../dist/nodes/Kommo/V1/resources/leads/get/description.js');
 const {
@@ -29,6 +32,24 @@ const {
 	descriptions: customFieldDescriptions,
 } = require('../dist/nodes/Kommo/V1/resources/customFields/index.js');
 const { apiRequestAllItems } = require('../dist/nodes/Kommo/V1/transport/index.js');
+const {
+	execute: updateLists,
+} = require('../dist/nodes/Kommo/V1/resources/lists/update/execute.js');
+const {
+	description: updateListsDescription,
+} = require('../dist/nodes/Kommo/V1/resources/lists/update/description.js');
+const { createListModel } = require('../dist/nodes/Kommo/V1/resources/lists/create/description.js');
+const { link: linkEntities } = require('../dist/nodes/Kommo/V1/resources/entityLinks/index.js');
+const {
+	description: getContactsDescription,
+} = require('../dist/nodes/Kommo/V1/resources/contacts/get/description.js');
+const {
+	description: getCompaniesDescription,
+} = require('../dist/nodes/Kommo/V1/resources/companies/get/description.js');
+const {
+	description: getTasksDescription,
+} = require('../dist/nodes/Kommo/V1/resources/tasks/get/description.js');
+const { webhookEventOptions } = require('../dist/nodes/Kommo/V1/helpers/webhookEvents.js');
 
 const fakeNode = {
 	name: 'Kommo Contract Test',
@@ -85,6 +106,137 @@ test('lead filters use pipeline_id and pipeline/status pairs required by Kommo',
 			.options.find((property) => property.name === 'statuses').typeOptions.loadOptionsMethod,
 		'getLeadFilterStatuses',
 	);
+});
+
+test('lead update converts closed_at to the Unix timestamp required by Kommo', async () => {
+	let request;
+	const context = executionContext(
+		{
+			json: false,
+			collection: { lead: [{ id: 42, closed_at: '2026-08-11T12:30:00-03:00' }] },
+		},
+		async (options) => {
+			request = options;
+			return { _embedded: { leads: [{ id: 42 }] } };
+		},
+	);
+
+	await updateLeads.call(context, 0);
+	assert.deepEqual(request.body, [{ id: 42, closed_at: 1786462200 }]);
+});
+
+test('list update preserves omitted booleans and exposes only current Kommo fields', async () => {
+	let request;
+	const context = executionContext(
+		{
+			json: false,
+			collection: { list: [{ id: 7, name: 'Renamed list' }] },
+		},
+		async (options) => {
+			request = options;
+			return { _embedded: { catalogs: [{ id: 7 }] } };
+		},
+	);
+
+	await updateLists.call(context, 0);
+	assert.deepEqual(request.body, [{ id: 7, name: 'Renamed list' }]);
+
+	const updateFields = updateListsDescription.find((property) => property.name === 'collection')
+		.options[0].values;
+	assert.equal(updateFields.find((field) => field.name === 'can_link_multiple').default, undefined);
+	assert.equal(
+		updateFields.some((field) => field.name === 'can_add_elements'),
+		false,
+	);
+	assert.equal(
+		createListModel.some((field) => field.name === 'can_add_elements'),
+		false,
+	);
+	assert.deepEqual(
+		createListModel.find((field) => field.name === 'type').options.map((option) => option.value),
+		['regular', 'products'],
+	);
+});
+
+test('entity links reject unsupported pairs and normalize catalog metadata', async () => {
+	const invalidContext = executionContext(
+		{
+			entityLinkType: 'contacts',
+			entityLinkId: 10,
+			entityLinkCollection: {
+				link: [{ to_entity_id: 20, to_entity_type: 'leads' }],
+			},
+		},
+		async () => assert.fail('invalid link must not make a request'),
+	);
+	await assert.rejects(linkEntities.execute.call(invalidContext, 0), /cannot be linked/);
+
+	let request;
+	const validContext = executionContext(
+		{
+			entityLinkType: 'leads',
+			entityLinkId: 10,
+			entityLinkCollection: {
+				link: [
+					{
+						to_entity_id: 20,
+						to_entity_type: 'catalog_elements',
+						catalog_id: 30,
+						quantity: 2,
+					},
+				],
+			},
+		},
+		async (options) => {
+			request = options;
+			return {};
+		},
+	);
+	await linkEntities.execute.call(validContext, 0);
+	assert.deepEqual(request.body, [
+		{
+			to_entity_id: 20,
+			to_entity_type: 'catalog_elements',
+			metadata: { catalog_id: 30, quantity: 2 },
+		},
+	]);
+});
+
+test('structured selectors omit options unsupported by the current Kommo API', () => {
+	const contactsFilter = getContactsDescription.find((property) => property.name === 'filter');
+	const contactsOptions = getContactsDescription.find((property) => property.name === 'options');
+	const companiesFilter = getCompaniesDescription.find((property) => property.name === 'filter');
+	const companiesOptions = getCompaniesDescription.find((property) => property.name === 'options');
+	const tasksFilter = getTasksDescription.find((property) => property.name === 'filter');
+
+	assert.equal(
+		contactsFilter.options.some((field) => field.name === 'created_at'),
+		false,
+	);
+	assert.equal(
+		contactsOptions.options
+			.find((field) => field.name === 'with')
+			.options.some((option) => option.value === 'customers'),
+		false,
+	);
+	assert.equal(
+		companiesFilter.options.some((field) => field.name === 'closest_task_at'),
+		false,
+	);
+	assert.equal(
+		companiesOptions.options
+			.find((field) => field.name === 'with')
+			.options.some((option) => option.value === 'customers'),
+		false,
+	);
+	assert.equal(
+		tasksFilter.options
+			.find((field) => field.name === 'entity_type')
+			.options.some((option) => option.value === 'customers'),
+		false,
+	);
+	assert.ok(webhookEventOptions.some((option) => option.value === 'restore_contact'));
+	assert.ok(webhookEventOptions.some((option) => option.value === 'restore_company'));
 });
 
 test('task update sends only selected fields and leaves absent values untouched', async () => {

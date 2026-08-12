@@ -58,6 +58,7 @@ export async function execute(
 			id: Number(lead.id),
 			created_at: getTimestampFromDateString(lead.created_at),
 			updated_at: getTimestampFromDateString(lead.updated_at),
+			closed_at: getTimestampFromDateString(lead.closed_at),
 			custom_fields_values:
 				lead.custom_fields_values && makeCustomFieldReqObject(lead.custom_fields_values),
 			_embedded: {

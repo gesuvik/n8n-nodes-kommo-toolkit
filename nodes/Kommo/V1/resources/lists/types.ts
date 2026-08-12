@@ -2,9 +2,8 @@ import { ICustomFieldValuesForm } from '../../Interface';
 
 export interface IListModelForm {
 	name: string;
-	type: 'regular' | 'invoices' | 'products';
+	type: 'regular' | 'products';
 	sort: number;
-	can_add_elements: boolean;
 	can_link_multiple: boolean;
 	request_id: string;
 }
@@ -22,7 +21,7 @@ export interface IFormListElement {
 }
 
 export interface IUpdateListForm {
-	list: Array<IListModelForm & { id: number }>;
+	list: Array<Partial<IListModelForm> & { id: number }>;
 }
 
 export interface IUpdateListElementForm {
@@ -34,7 +33,6 @@ export type List = {
 	name: string;
 	sort: number;
 	type: string;
-	can_add_elements: boolean;
 	can_link_multiple: boolean;
 	request_id: string;
 };
@@ -45,10 +43,8 @@ export type ListElement = {
 	custom_fields_values: Record<string, unknown>[];
 };
 
-export type RequestListUpdate = Partial<Exclude<List, 'id'>> & Pick<List, 'id'>;
-export type RequestListCreate = Partial<Exclude<List, 'id' | 'sort' | 'type'>> & Pick<List, 'name'>;
+export type RequestListUpdate = Partial<Omit<List, 'id'>> & Pick<List, 'id'>;
+export type RequestListCreate = Partial<Omit<List, 'id'>> & Pick<List, 'name'>;
 
-export type RequestListElementUpdate = Partial<Exclude<ListElement, 'id'>> &
-	Pick<ListElement, 'id'>;
-export type RequestListElementCreate = Partial<Exclude<ListElement, 'id'>> &
-	Pick<ListElement, 'name'>;
+export type RequestListElementUpdate = Partial<Omit<ListElement, 'id'>> & Pick<ListElement, 'id'>;
+export type RequestListElementCreate = Partial<Omit<ListElement, 'id'>> & Pick<ListElement, 'name'>;

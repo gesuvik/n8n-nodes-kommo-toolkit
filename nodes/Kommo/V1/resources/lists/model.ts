@@ -26,10 +26,6 @@ export const listModelDescription: INodeProperties[] = [
 				name: 'Regular',
 				value: 'regular',
 			},
-			{
-				name: 'Invoices',
-				value: 'invoices',
-			},
 			{ name: 'Products', value: 'products' },
 		],
 	},
@@ -39,13 +35,6 @@ export const listModelDescription: INodeProperties[] = [
 		description: 'List sorting',
 		type: 'number',
 		default: 0,
-	},
-	{
-		displayName: 'Can Add Elements',
-		name: 'can_add_elements',
-		description: 'Whether list elements can be added via the interface',
-		type: 'boolean',
-		default: false,
 	},
 	{
 		displayName: 'Can Link Multiple',

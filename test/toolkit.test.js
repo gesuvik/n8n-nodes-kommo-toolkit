@@ -8,6 +8,9 @@ const { KommoTrigger } = require('../dist/nodes/Kommo/KommoTrigger.node.js');
 const { apiRequestAllItems } = require('../dist/nodes/Kommo/V1/transport/index.js');
 const { kommoLongLivedApi } = require('../dist/credentials/kommoLongLivedApi.credentials.js');
 const { kommoOAuth2Api } = require('../dist/credentials/kommoOAuth2Api.credentials.js');
+const {
+	kommoWebhookSecretApi,
+} = require('../dist/credentials/kommoWebhookSecretApi.credentials.js');
 
 const fakeNode = {
 	name: 'Kommo Toolkit Test',
@@ -15,6 +18,8 @@ const fakeNode = {
 	typeVersion: 1,
 	position: [0, 0],
 };
+
+const webhookSecret = '0123456789abcdef0123456789abcdef';
 
 function returnJsonArray(data) {
 	return (Array.isArray(data) ? data : [data]).map((json) => ({ json }));
@@ -38,6 +43,14 @@ test('toolkit exposes four node types and 68 configured Kommo operations', () =>
 		[main, api, bulk, trigger].map((node) => node.description.name),
 		['kommo', 'kommoApi', 'kommoBulk', 'kommoTrigger'],
 	);
+	for (const node of [main, api, bulk, trigger]) {
+		assert.equal(
+			node.description.properties.find((property) => property.name === 'authentication')
+				.noDataExpression,
+			true,
+			`${node.description.name} authentication must not vary by input item`,
+		);
+	}
 });
 
 test('advanced API endpoint normalization accepts relative paths and rejects URL injection', () => {
@@ -100,6 +113,8 @@ test('advanced API node authenticates, applies query parameters, and unwraps HAL
 test('credentials constrain secrets to validated Kommo account domains', async () => {
 	const longLived = new kommoLongLivedApi();
 	const oauth = new kommoOAuth2Api();
+	const webhook = new kommoWebhookSecretApi();
+	const validateWebhookSecret = new KommoTrigger().methods.credentialTest.validateWebhookSecret;
 	const oauthProperties = Object.fromEntries(
 		oauth.properties.map((property) => [property.name, property.default]),
 	);
@@ -109,6 +124,17 @@ test('credentials constrain secrets to validated Kommo account domains', async (
 	assert.equal(oauthProperties.allowedHttpRequestDomains, 'domains');
 	assert.equal(oauthProperties.allowedDomains, '*.kommo.com');
 	assert.match(oauthProperties.accessTokenUrl, /SUBDOMAIN_PATTERN|\.test\(/);
+	assert.equal(webhook.properties[0].name, 'secret');
+	assert.equal(webhook.properties[0].typeOptions.password, true);
+	assert.equal(webhook.properties[0].required, true);
+	assert.deepEqual(await validateWebhookSecret({ data: { secret: 'too-short' } }), {
+		status: 'Error',
+		message: 'Webhook Secret must contain at least 32 characters',
+	});
+	assert.deepEqual(await validateWebhookSecret({ data: { secret: webhookSecret } }), {
+		status: 'OK',
+		message: 'Webhook Secret is valid',
+	});
 
 	const options = await longLived.authenticate(
 		{ subdomain: 'sandbox-42', apiKey: 'secret' },
@@ -252,6 +278,7 @@ test('bulk list operations reject non-numeric catalog IDs before making a reques
 test('trigger registers and removes its own Kommo webhook', async () => {
 	const requests = [];
 	const destination = 'https://n8n.example/webhook/kommo';
+	const securedDestination = `${destination}?kommo_secret=${webhookSecret}`;
 	let registeredWebhook;
 	const context = {
 		getNodeWebhookUrl: () => destination,
@@ -260,7 +287,8 @@ test('trigger registers and removes its own Kommo webhook', async () => {
 			if (name === 'authentication') return 'longLivedToken';
 			throw new Error(`Unexpected parameter: ${name}`);
 		},
-		getCredentials: async () => ({ subdomain: 'example' }),
+		getCredentials: async (name) =>
+			name === 'kommoWebhookSecretApi' ? { secret: webhookSecret } : { subdomain: 'example' },
 		getNode: () => fakeNode,
 		helpers: {
 			httpRequestWithAuthentication: async (_credentialType, options) => {
@@ -283,10 +311,10 @@ test('trigger registers and removes its own Kommo webhook', async () => {
 	assert.equal(registeredWebhook, undefined);
 	assert.deepEqual(
 		requests.map((request) => request.method),
-		['GET', 'GET', 'POST', 'GET', 'GET', 'DELETE'],
+		['GET', 'GET', 'GET', 'POST', 'GET', 'GET', 'DELETE', 'GET'],
 	);
-	assert.deepEqual(requests[2].body, {
-		destination,
+	assert.deepEqual(requests[3].body, {
+		destination: securedDestination,
 		settings: ['add_lead', 'status_lead'],
 	});
 });
@@ -294,6 +322,7 @@ test('trigger registers and removes its own Kommo webhook', async () => {
 test('trigger replaces disabled or stale webhook registrations', async () => {
 	const requests = [];
 	const destination = 'https://n8n.example/webhook/kommo';
+	const securedDestination = `${destination}?kommo_secret=${webhookSecret}`;
 	let registeredWebhook = {
 		destination,
 		settings: ['add_lead'],
@@ -306,7 +335,8 @@ test('trigger replaces disabled or stale webhook registrations', async () => {
 			if (name === 'authentication') return 'longLivedToken';
 			throw new Error(`Unexpected parameter: ${name}`);
 		},
-		getCredentials: async () => ({ subdomain: 'example' }),
+		getCredentials: async (name) =>
+			name === 'kommoWebhookSecretApi' ? { secret: webhookSecret } : { subdomain: 'example' },
 		getNode: () => fakeNode,
 		helpers: {
 			httpRequestWithAuthentication: async (_credentialType, options) => {
@@ -329,10 +359,61 @@ test('trigger replaces disabled or stale webhook registrations', async () => {
 	assert.equal(await methods.checkExists.call(context), true);
 	assert.deepEqual(
 		requests.map((request) => request.method),
-		['GET', 'GET', 'DELETE', 'POST', 'GET'],
+		['GET', 'GET', 'GET', 'DELETE', 'POST', 'GET'],
 	);
-	assert.deepEqual(requests[3].body, {
-		destination,
+	assert.deepEqual(requests[4].body, {
+		destination: securedDestination,
 		settings: ['add_lead', 'status_lead'],
 	});
+});
+
+test('trigger rejects unauthenticated webhooks and redacts its secret from metadata', async () => {
+	let statusCode;
+	let responseBody;
+	const rejectedContext = {
+		getNodeParameter(name) {
+			if (name === 'includeRequestMetadata') return true;
+			throw new Error(`Unexpected parameter: ${name}`);
+		},
+		getCredentials: async () => ({ secret: webhookSecret }),
+		getNode: () => fakeNode,
+		getBodyData: () => ({ leads: { add: [{ id: '10' }] } }),
+		getQueryData: () => ({ kommo_secret: 'wrong-secret' }),
+		getHeaderData: () => ({}),
+		getResponseObject: () => ({
+			status(code) {
+				statusCode = code;
+				return this;
+			},
+			send(body) {
+				responseBody = body;
+				return this;
+			},
+		}),
+		helpers: { returnJsonArray },
+	};
+
+	const rejected = await new KommoTrigger().webhook.call(rejectedContext);
+	assert.equal(statusCode, 401);
+	assert.equal(responseBody, 'Unauthorized');
+	assert.deepEqual(rejected, { noWebhookResponse: true });
+
+	const acceptedContext = {
+		...rejectedContext,
+		getQueryData: () => ({ kommo_secret: webhookSecret, source: 'kommo' }),
+	};
+	const accepted = await new KommoTrigger().webhook.call(acceptedContext);
+	assert.deepEqual(accepted.workflowData[0][0].json.query, { source: 'kommo' });
+});
+
+test('trigger rejects webhook credentials shorter than 32 characters', async () => {
+	const context = {
+		getNodeParameter: () => false,
+		getCredentials: async () => ({ secret: 'too-short' }),
+		getNode: () => fakeNode,
+		getBodyData: () => ({}),
+		getQueryData: () => ({ kommo_secret: 'too-short' }),
+	};
+
+	await assert.rejects(new KommoTrigger().webhook.call(context), /at least 32 characters/);
 });

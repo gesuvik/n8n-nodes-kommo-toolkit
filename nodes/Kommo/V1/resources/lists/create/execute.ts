@@ -29,11 +29,9 @@ export async function execute(
 	const body = listsCollection.list
 		.map((list): RequestListCreate => {
 			return {
-				...list,
 				name: String(list.name),
 				type: String(list.type),
 				sort: toNumberOrUndefined(list.sort),
-				can_add_elements: Boolean(list.can_add_elements),
 				can_link_multiple: Boolean(list.can_link_multiple),
 				request_id: list.request_id ? String(list.request_id) : undefined,
 			};
