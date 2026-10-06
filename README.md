@@ -143,7 +143,7 @@ See [CHANGELOG.md](CHANGELOG.md) for fixes, additions, and migration notes.
 
 ## Resources
 
-- [Toolkit source and issue tracker](https://github.com/gessuvik/n8n-nodes-kommo-toolkit)
+- [Toolkit source and issue tracker](https://github.com/gesuvik/n8n-nodes-kommo-toolkit)
 - [Kommo API reference](https://developers.kommo.com/reference)
 - [Kommo webhooks](https://developers.kommo.com/docs/webhooks-1)
 - [Kommo limitations and recommendations](https://developers.kommo.com/docs/limitations-and-recommendations)
