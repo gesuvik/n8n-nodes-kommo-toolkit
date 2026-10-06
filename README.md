@@ -1,119 +1,72 @@
-# n8n-nodes-kommo-toolkit
+# Kommo Toolkit for n8n
 
-An extended n8n community-node toolkit for the [Kommo API](https://developers.kommo.com/). It
-keeps the original Kommo node compatible while adding native resources, a webhook trigger,
-batch-oriented writes, and a guarded API escape hatch so workflows need fewer hand-built HTTP
-Request nodes.
+An extended n8n community-node toolkit for the [Kommo CRM](https://www.kommo.com/) that turns your sales pipeline into ordinary n8n building blocks. Manage leads, contacts, companies, tasks, pipelines, and notes — plus respond to events and push bulk changes — without hand-building HTTP Request nodes.
 
-Version `0.3.0-beta.1` builds on the original
-[`n8n-nodes-kommo`](https://github.com/yatolstoy/n8n-nodes-kommo) project and uses its own npm package
-identity so it can be installed directly from n8n as an unverified community package.
-The original project was created by Yaroslav Tolstoy and is licensed under the MIT License. This
-toolkit preserves that copyright notice and documents its additional changes in the changelog.
+It builds on the original [`n8n-nodes-kommo`](https://github.com/yatolstoy/n8n-nodes-kommo) project, keeps the familiar node and credential types, and ships under its own package identity so it installs directly from n8n as an unverified community package.
 
-## Nodes
+## What's inside
 
-| Node              | Purpose                                                                     |
-| ----------------- | --------------------------------------------------------------------------- |
-| **Kommo**         | 68 configured operations across 18 resources                                |
-| **Kommo Trigger** | Registers and removes Kommo webhooks with the n8n workflow lifecycle        |
-| **Kommo Bulk**    | Creates or updates entities in batches of up to 50 items                    |
-| **Kommo API**     | Calls a safe path relative to `/api/v4` using the selected Kommo credential |
+Four nodes cover the full automation surface:
 
-All four nodes support OAuth2 and long-lived-token credentials. The public package prefix is
-`n8n-nodes-kommo-toolkit`, while the underlying node names and credential types remain familiar.
-Do not install this toolkit alongside another Kommo community package that exposes the same
-credential types.
+| Node              | What it does                                                                    |
+| ----------------- | ------------------------------------------------------------------------------- |
+| **Kommo**         | 68 configured operations across 18 resources                                    |
+| **Kommo Trigger** | Registers and removes Kommo webhooks with the n8n workflow lifecycle            |
+| **Kommo Bulk**    | Creates or updates entities in batches of up to 50 items                        |
+| **Kommo API**     | Calls a safe path relative to `/api/v4` using the selected Kommo credential     |
 
-## Operations
+All four nodes support OAuth2 and long-lived-token credentials.
 
-| Resource       | Operations                                                            |
-| -------------- | --------------------------------------------------------------------- |
-| Account        | Get info                                                              |
-| Company        | Create, get, update                                                   |
-| Contact        | Create, get, update                                                   |
-| Custom Field   | Create, delete, get, get many, update                                 |
-| Entity Link    | Get many, link, unlink                                                |
-| Event          | Get, get many, get types                                              |
-| Incoming Lead  | Accept, add call, add form, decline, get, get many, get summary, link |
-| Lead           | Create, get, update                                                   |
-| List           | Create, get, update, create element, get elements, update elements    |
-| Note           | Create, get, update                                                   |
-| Pipeline       | Create, delete, get, get many, update                                 |
-| Pipeline Stage | Create, delete, get, get many, update                                 |
-| Salesbot       | Get, get many, run, stop                                              |
-| Source         | Create, delete, get, get many, update                                 |
-| Tag            | Create, get many, replace on entity                                   |
-| Task           | Create, get, update                                                   |
-| User           | Get, get many                                                         |
-| Webhook        | Create, delete, get many                                              |
+## What you can do with it
 
-See [the detailed operation catalog](docs/OPERATION-CATALOG.md) for endpoint coverage and the few
-places where variable Kommo structures still use JSON.
+- **Work the pipeline end to end.** Create, read, and update leads, contacts, companies, notes, tasks, pipelines, and pipeline stages.
+- **Handle incoming leads.** Accept, decline, and enrich incoming leads, including form and call sources, and link them to contacts and companies.
+- **React to events in real time.** Trigger workflows from Kommo webhooks with automatic registration and cleanup.
+- **Push bulk changes.** Create or update up to 50 entities per batch, with optional empty-value cleanup and preserved source links.
+- **Reach any endpoint when you need it.** A guarded escape hatch resolves relative API paths safely, so edge cases don't force you back to raw HTTP Request nodes.
+- **Automate salesbots and custom fields.** Run and stop salesbots, and manage custom fields, tags, sources, and entity links.
 
-## Installation
+## Getting started
 
-Install the published package in a self-hosted n8n instance:
+### 1. Install
 
-1. Open **Settings > Community Nodes**.
-2. Select **Install**.
-3. Enter `n8n-nodes-kommo-toolkit`.
-4. Accept the warning for unverified community code and select **Install**.
+In n8n, open **Settings → Community Nodes**, choose **Install**, and enter:
 
-For local development, build and test it from the source directory:
-
-```bash
-pnpm install
-pnpm test
-pnpm pack
+```
+n8n-nodes-kommo-toolkit
 ```
 
-Install the resulting `.tgz` only in a self-hosted n8n test instance. Do not install this toolkit
-and the upstream package in the same instance because both expose the original Kommo credential
-types.
+Accept the warning for unverified community code and confirm.
 
-Existing workflows created with `n8n-nodes-kommo` are not silently rewritten to the new
-`n8n-nodes-kommo-toolkit` package prefix. Test new workflows in the sandbox or migrate exported
-workflow JSON deliberately after making a backup.
+Do not install this toolkit alongside another Kommo community package that exposes the same credential types, since both define the original Kommo credential.
 
-For a guided smoke test, use [docs/GUIA-DE-PRUEBAS.md](docs/GUIA-DE-PRUEBAS.md).
+### 2. Create a credential
 
-## Credentials
-
-Create a Kommo account [here](https://www.kommo.com/). A trial account is suitable for workflow
-testing.
-
-### OAuth2
+**OAuth2**
 
 1. In n8n, create a Kommo OAuth2 credential and copy its OAuth Redirect URL.
 2. In Kommo, create an integration under `https://your-domain.kommo.com/settings/widgets/`.
 3. Paste the n8n redirect URL into the integration's redirect-link field.
 4. Save the integration and copy its Integration ID and Secret Key into n8n.
-5. Enter only the account subdomain: omit the protocol and `.kommo.com`.
-6. Connect and authorize the Kommo account.
+5. Enter only the account subdomain — omit the protocol and `.kommo.com`.
+6. Connect and authorize the account.
 
-### Long-lived token
+**Long-lived token**
 
-Create a Kommo long-lived-token credential with the token and account subdomain. The transport
-rejects domains, URLs, dots, and paths in the subdomain field before making a request.
+Create a Kommo long-lived-token credential with the token and account subdomain. The transport validates the subdomain field before making any request.
 
-## Usage notes
+### 3. Build your first workflow
 
-- **Kommo Trigger** needs Kommo administrator rights, a publicly reachable HTTPS production webhook
-  URL, and a dedicated **Kommo Webhook Secret API** credential containing at least 32 random
-  characters. n8n stores the value as credential data; Kommo receives it only as part of its
-  registered destination. The node rejects events without it and removes it from output metadata.
-- **Kommo Bulk** accepts incoming n8n items or a JSON array. It caps batches at 50, removes empty
-  values optionally, and preserves `pairedItem` links to source items.
-- **Kommo API** accepts only relative API paths. Protocols, parent traversal, backslashes, query
-  strings, and fragments in the endpoint field are rejected. Put query parameters in **Query JSON**.
-- Variable Kommo payloads such as incoming form/call leads, source services, and uncommon custom
-  field enums remain JSON parameters; routine IDs, filters, resources, and actions are configured
-  controls.
-- The request scheduler from `0.1.0` remains unchanged in this functionality release. Throughput
-  and distributed rate limiting should be designed and benchmarked separately.
+Add a **Kommo Trigger** or any trigger, then add a **Kommo** node, pick a resource and operation, map fields, and execute. A trial Kommo account is enough to test workflows.
 
-Test write and delete operations against a Kommo sandbox before using production data.
+## Operational notes
+
+- **Kommo Trigger** requires administrator rights, a publicly reachable HTTPS webhook URL, and a dedicated **Kommo Webhook Secret API** credential with at least 32 random characters. Events without the secret are rejected and the secret is stripped from output metadata.
+- **Kommo Bulk** accepts incoming n8n items or a JSON array, caps batches at 50, optionally removes empty values, and preserves `pairedItem` links.
+- **Kommo API** accepts only relative API paths. Protocols, parent traversal, backslashes, query strings, and fragments are rejected in the endpoint field; put query parameters in **Query JSON**.
+- A few variable Kommo structures — incoming form and call leads, source services, and uncommon custom-field enums — remain JSON parameters; routine IDs, filters, resources, and actions are configured controls.
+
+Test write and delete operations against a Kommo sandbox before touching production data.
 
 ## Compatibility
 
@@ -122,20 +75,23 @@ Test write and delete operations against a Kommo sandbox before using production
 - n8n community-node API metadata version 1
 - Strict `@n8n/node-cli` build and lint rules
 
-Community-node installation must be enabled by the n8n administrator. Queue-mode installations
-must make the package available to the main process and every worker.
+Community-node installation must be enabled by the n8n administrator, and queue-mode installations must make the package available to the main process and every worker.
 
-## Development
+## For developers
 
 ```bash
 pnpm install
 pnpm format:check
 pnpm lint
 pnpm test
+pnpm pack
 ```
 
-`pnpm test` performs a clean n8n-node build and runs the Node.js regression suite. The automated
-tests mock Kommo HTTP responses; they do not modify a real Kommo account.
+`pnpm test` performs a clean n8n-node build and runs the regression suite. The tests mock Kommo HTTP responses and do not modify a real Kommo account.
+
+Install the resulting `.tgz` only in a self-hosted n8n test instance. Workflows created with the upstream `n8n-nodes-kommo` package are not silently rewritten to the new package prefix — test new workflows in a sandbox or migrate exported workflow JSON deliberately, after a backup.
+
+See [the operation catalog](docs/OPERATION-CATALOG.md) for endpoint coverage and the [smoke-test guide](docs/GUIA-DE-PRUEBAS.md).
 
 ## Version history
 
@@ -151,13 +107,6 @@ See [CHANGELOG.md](CHANGELOG.md) for fixes, additions, and migration notes.
 
 ## Attribution and upstream
 
-Upstream links are preserved for attribution; toolkit-specific issues should not be reported as
-upstream defects without reproducing them on the original package.
+The original project was created by Yaroslav Tolstoy and is licensed under the MIT License. This toolkit preserves that copyright notice and documents its additional changes in the changelog. Upstream links are kept for attribution; toolkit-specific issues should not be reported as upstream defects without reproducing them on the original package.
 
-Contributions and independent audits are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before
-opening a pull request.
-
-- [GitHub issues](https://github.com/yatolstoy/n8n-nodes-kommo/issues)
-- [Telegram](https://t.me/yatolstoy)
-- [Donation from Russia](https://yoomoney.ru/to/410012112222938)
-- [Donation from other countries](https://appstart.easystaff.io/easylancer/yatolstoy)
+Contributions and independent audits are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
